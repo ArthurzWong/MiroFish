@@ -1,953 +1,702 @@
 <template>
-  <div class="home-container">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar">
-      <div class="nav-brand">MIROFISH</div>
-      <div class="nav-links">
-        <LanguageSwitcher />
-        <a href="https://github.com/666ghj/MiroFish" target="_blank" class="github-link">
-          {{ $t('nav.visitGithub') }} <span class="arrow">↗</span>
-        </a>
-      </div>
-    </nav>
+  <div class="home">
+    <!-- Cinematic opening (once per session) -->
+    <component :is="IntroOverlay" v-if="showIntro" @done="showIntro = false" />
 
-    <div class="main-content">
-      <!-- 上半部分：Hero 区域 -->
-      <section class="hero-section">
-        <div class="hero-left">
-          <div class="tag-row">
-            <span class="orange-tag">{{ $t('home.tagline') }}</span>
-            <span class="version-text">{{ $t('home.version') }}</span>
-          </div>
-          
-          <h1 class="main-title">
-            {{ $t('home.heroTitle1') }}<br>
-            <span class="gradient-text">{{ $t('home.heroTitle2') }}</span>
-          </h1>
-          
-          <div class="hero-desc">
-            <p>
-              <i18n-t keypath="home.heroDesc" tag="span">
-                <template #brand><span class="highlight-bold">{{ $t('home.heroDescBrand') }}</span></template>
-                <template #agentScale><span class="highlight-orange">{{ $t('home.heroDescAgentScale') }}</span></template>
-                <template #optimalSolution><span class="highlight-code">{{ $t('home.heroDescOptimalSolution') }}</span></template>
-              </i18n-t>
-            </p>
-            <p class="slogan-text">
-              {{ $t('home.slogan') }}<span class="blinking-cursor">_</span>
-            </p>
-          </div>
-           
-          <div class="decoration-square"></div>
-        </div>
-        
-        <div class="hero-right">
-          <!-- Logo 区域 -->
-          <div class="logo-container">
-            <img src="../assets/logo/MiroFish_logo_left.jpeg" alt="MiroFish Logo" class="hero-logo" />
-          </div>
-          
-          <button class="scroll-down-btn" @click="scrollToBottom">
-            ↓
-          </button>
-        </div>
-      </section>
-
-      <!-- 下半部分：双栏布局 -->
-      <section class="dashboard-section">
-        <!-- 左栏：状态与步骤 -->
-        <div class="left-panel">
-          <div class="panel-header">
-            <span class="status-dot">■</span> {{ $t('home.systemStatus') }}
-          </div>
-          
-          <h2 class="section-title">{{ $t('home.systemReady') }}</h2>
-          <p class="section-desc">
-            {{ $t('home.systemReadyDesc') }}
-          </p>
-          
-          <!-- 数据指标卡片 -->
-          <div class="metrics-row">
-            <div class="metric-card">
-              <div class="metric-value">{{ $t('home.metricLowCost') }}</div>
-              <div class="metric-label">{{ $t('home.metricLowCostDesc') }}</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value">{{ $t('home.metricHighAvail') }}</div>
-              <div class="metric-label">{{ $t('home.metricHighAvailDesc') }}</div>
-            </div>
-          </div>
-
-          <!-- 项目模拟步骤介绍 (新增区域) -->
-          <div class="steps-container">
-            <div class="steps-header">
-               <span class="diamond-icon">◇</span> {{ $t('home.workflowSequence') }}
-            </div>
-            <div class="workflow-list">
-              <div class="workflow-item">
-                <span class="step-num">01</span>
-                <div class="step-info">
-                  <div class="step-title">{{ $t('home.step01Title') }}</div>
-                  <div class="step-desc">{{ $t('home.step01Desc') }}</div>
-                </div>
-              </div>
-              <div class="workflow-item">
-                <span class="step-num">02</span>
-                <div class="step-info">
-                  <div class="step-title">{{ $t('home.step02Title') }}</div>
-                  <div class="step-desc">{{ $t('home.step02Desc') }}</div>
-                </div>
-              </div>
-              <div class="workflow-item">
-                <span class="step-num">03</span>
-                <div class="step-info">
-                  <div class="step-title">{{ $t('home.step03Title') }}</div>
-                  <div class="step-desc">{{ $t('home.step03Desc') }}</div>
-                </div>
-              </div>
-              <div class="workflow-item">
-                <span class="step-num">04</span>
-                <div class="step-info">
-                  <div class="step-title">{{ $t('home.step04Title') }}</div>
-                  <div class="step-desc">{{ $t('home.step04Desc') }}</div>
-                </div>
-              </div>
-              <div class="workflow-item">
-                <span class="step-num">05</span>
-                <div class="step-info">
-                  <div class="step-title">{{ $t('home.step05Title') }}</div>
-                  <div class="step-desc">{{ $t('home.step05Desc') }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 右栏：交互控制台 -->
-        <div class="right-panel">
-          <div class="console-box">
-            <!-- 上传区域 -->
-            <div class="console-section">
-              <div class="console-header">
-                <span class="console-label">{{ $t('home.realitySeed') }}</span>
-                <span class="console-meta">{{ $t('home.supportedFormats') }}</span>
-              </div>
-              
-              <div 
-                class="upload-zone"
-                :class="{ 'drag-over': isDragOver, 'has-files': files.length > 0 }"
-                @dragover.prevent="handleDragOver"
-                @dragleave.prevent="handleDragLeave"
-                @drop.prevent="handleDrop"
-                @click="triggerFileInput"
-              >
-                <input
-                  ref="fileInput"
-                  type="file"
-                  multiple
-                  accept=".pdf,.md,.txt"
-                  @change="handleFileSelect"
-                  style="display: none"
-                  :disabled="loading"
-                />
-                
-                <div v-if="files.length === 0" class="upload-placeholder">
-                  <div class="upload-icon">↑</div>
-                  <div class="upload-title">{{ $t('home.dragToUpload') }}</div>
-                  <div class="upload-hint">{{ $t('home.orBrowse') }}</div>
-                </div>
-                
-                <div v-else class="file-list">
-                  <div v-for="(file, index) in files" :key="index" class="file-item">
-                    <span class="file-icon">📄</span>
-                    <span class="file-name">{{ file.name }}</span>
-                    <button @click.stop="removeFile(index)" class="remove-btn">×</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 分割线 -->
-            <div class="console-divider">
-              <span>{{ $t('home.inputParams') }}</span>
-            </div>
-
-            <!-- 输入区域 -->
-            <div class="console-section">
-              <div class="console-header">
-                <span class="console-label">{{ $t('home.simulationPrompt') }}</span>
-              </div>
-              <div class="input-wrapper">
-                <textarea
-                  v-model="formData.simulationRequirement"
-                  class="code-input"
-                  :placeholder="$t('home.promptPlaceholder')"
-                  rows="6"
-                  :disabled="loading"
-                ></textarea>
-                <div class="model-badge">{{ $t('home.engineBadge') }}</div>
-              </div>
-            </div>
-
-            <!-- 启动按钮 -->
-            <div class="console-section btn-section">
-              <button 
-                class="start-engine-btn"
-                @click="startSimulation"
-                :disabled="!canSubmit || loading"
-              >
-                <span v-if="!loading">{{ $t('home.startEngine') }}</span>
-                <span v-else>{{ $t('home.initializing') }}</span>
-                <span class="btn-arrow">→</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 历史项目数据库 -->
-      <HistoryDatabase />
+    <!-- Living backdrop -->
+    <div class="home__ocean" aria-hidden="true">
+      <component :is="OceanScene" variant="hero" :quality="oceanQuality" />
     </div>
+
+    <!-- Nav -->
+    <header class="nav">
+      <div class="nav__inner mf-shell">
+        <a class="nav__brand" href="/" aria-label="MiroFish home">
+          <span class="nav__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 12c3.2-4.6 7.2-6.2 10.5-4.6 3.3 1.6 5.2 3.2 8.5 4.6-3.3 1.4-5.2 3-8.5 4.6-3.3 1.6-7.3 0-10.5-4.6Z" />
+              <path d="M2.5 12 5 8.6M2.5 12 5 15.4" />
+              <circle cx="16.4" cy="11.2" r="0.9" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <span class="nav__word">MiroFish</span>
+        </a>
+
+        <nav class="nav__links">
+          <span class="nav__status">
+            <i class="pulse" aria-hidden="true"></i>{{ $t('home.systemReady') }}
+          </span>
+          <LanguageSwitcher />
+          <a class="nav__ghost" href="https://github.com/666ghj/MiroFish" target="_blank" rel="noopener">
+            {{ $t('nav.visitGithub') }}
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8" /></svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- Hero ------------------------------------------------------------ -->
+      <section class="hero mf-shell">
+        <div class="hero__copy">
+          <p class="hero__eyebrow mf-eyebrow">{{ $t('home.tagline') }}</p>
+
+          <h1 class="hero__title">
+            <span class="hero__title-a">{{ $t('home.heroTitle1') }}</span>
+            <span class="hero__title-b">{{ $t('home.heroTitle2') }}</span>
+          </h1>
+
+          <p class="hero__desc">
+            <i18n-t keypath="home.heroDesc" tag="span">
+              <template #brand><strong class="hl-brand">{{ $t('home.heroDescBrand') }}</strong></template>
+              <template #agentScale><em class="hl-agent">{{ $t('home.heroDescAgentScale') }}</em></template>
+              <template #optimalSolution><span class="hl-code">{{ $t('home.heroDescOptimalSolution') }}</span></template>
+            </i18n-t>
+          </p>
+
+          <p class="hero__slogan">
+            <span class="hero__slogan-mark" aria-hidden="true"></span>
+            {{ $t('home.slogan') }}
+          </p>
+
+          <div class="hero__actions">
+            <button class="mf-btn hero__cta" @click="focusConsole" :disabled="loading">
+              {{ $t('home.consoleCta') }}
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5" /></svg>
+            </button>
+            <button class="mf-btn mf-btn--ghost" @click="scrollToWorkflow">
+              {{ $t('home.workflowSequence') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Console: the actual tool, above the fold -->
+        <div class="console" ref="consoleRef">
+          <div class="console__head">
+            <span class="console__label">{{ $t('home.realitySeed') }}</span>
+            <span class="console__meta">{{ $t('home.supportedFormats') }}</span>
+          </div>
+
+          <div
+            class="drop"
+            :class="{ 'is-over': isDragOver, 'has-files': files.length > 0, 'is-disabled': loading }"
+            @dragover.prevent="handleDragOver"
+            @dragleave.prevent="handleDragLeave"
+            @drop.prevent="handleDrop"
+            @click="triggerFileInput"
+            @keydown.enter.prevent="triggerFileInput"
+            @keydown.space.prevent="triggerFileInput"
+            role="button"
+            tabindex="0"
+            :aria-label="$t('home.dragToUpload')"
+          >
+            <input
+              ref="fileInput"
+              type="file"
+              multiple
+              accept=".pdf,.md,.txt"
+              @change="handleFileSelect"
+              class="drop__input"
+              :disabled="loading"
+            />
+
+            <template v-if="files.length === 0">
+              <span class="drop__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" /><path d="M4 16.5v1.8A1.7 1.7 0 0 0 5.7 20h12.6a1.7 1.7 0 0 0 1.7-1.7v-1.8" /></svg>
+              </span>
+              <span class="drop__title">{{ $t('home.dragToUpload') }}</span>
+              <span class="drop__hint">{{ $t('home.orBrowse') }}</span>
+            </template>
+
+            <ul v-else class="files">
+              <li v-for="(file, index) in files" :key="file.name + index" class="files__row">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a1.6 1.6 0 0 0-1.6 1.6v14.8A1.6 1.6 0 0 0 7 21h10a1.6 1.6 0 0 0 1.6-1.6V7.6Z" /><path d="M14 3v4.6h4.6" /></svg>
+                <span class="files__name">{{ file.name }}</span>
+                <button class="files__remove" @click.stop="removeFile(index)" :aria-label="$t('common.close')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="console__divider">
+            <span>{{ $t('home.inputParams') }}</span>
+          </div>
+
+          <div class="console__field">
+            <label class="console__label console__label--prompt" for="sim-prompt">{{ $t('home.simulationPrompt') }}</label>
+            <textarea
+              id="sim-prompt"
+              v-model="formData.simulationRequirement"
+              class="console__textarea"
+              :placeholder="$t('home.promptPlaceholder')"
+              rows="5"
+              :disabled="loading"
+            ></textarea>
+            <span class="console__badge">{{ $t('home.engineBadge') }}</span>
+          </div>
+
+          <button
+            class="mf-btn mf-btn--primary console__start"
+            @click="startSimulation"
+            :disabled="!canSubmit || loading"
+          >
+            <span v-if="!loading">{{ $t('home.startEngine') }}</span>
+            <span v-else>{{ $t('home.initializing') }}</span>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12.5 6l6 6-6 6" /></svg>
+          </button>
+
+          <div class="console__stats">
+            <div class="stat">
+              <span class="stat__value">{{ $t('home.metricLowCost') }}</span>
+              <span class="stat__label">{{ $t('home.metricLowCostDesc') }}</span>
+            </div>
+            <span class="stat__rule" aria-hidden="true"></span>
+            <div class="stat">
+              <span class="stat__value">{{ $t('home.metricHighAvail') }}</span>
+              <span class="stat__label">{{ $t('home.metricHighAvailDesc') }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workflow rail ----------------------------------------------------- -->
+      <section class="flow mf-shell" ref="flowRef">
+        <h2 class="flow__title">{{ $t('home.workflowSequence') }}</h2>
+        <ol class="flow__rail">
+          <li v-for="(step, i) in steps" :key="step.title" class="flow__step">
+            <span class="flow__num">{{ String(i + 1).padStart(2, '0') }}</span>
+            <span class="flow__body">
+              <span class="flow__name">{{ step.title }}</span>
+              <span class="flow__desc">{{ step.desc }}</span>
+            </span>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Prior runs -------------------------------------------------------- -->
+      <section class="ledger mf-shell">
+        <HistoryDatabase />
+      </section>
+    </main>
+
+    <footer class="foot mf-shell">
+      <span>{{ $t('home.engineBadge') }}</span>
+      <span class="foot__dim">{{ $t('home.version') }}</span>
+    </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, defineAsyncComponent, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import HistoryDatabase from '../components/HistoryDatabase.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 
+// Three.js only ships when the ocean is actually used.
+const OceanScene = defineAsyncComponent(() => import('../components/OceanScene.vue'))
+const IntroOverlay = defineAsyncComponent(() => import('../components/IntroOverlay.vue'))
+
 const router = useRouter()
+const { t } = useI18n()
 
-// 表单数据
-const formData = ref({
-  simulationRequirement: ''
-})
-
-// 文件列表
+const formData = ref({ simulationRequirement: '' })
 const files = ref([])
-
-// 状态
 const loading = ref(false)
-const error = ref('')
 const isDragOver = ref(false)
-
-// 文件输入引用
 const fileInput = ref(null)
+const consoleRef = ref(null)
+const flowRef = ref(null)
 
-// 计算属性:是否可以提交
-const canSubmit = computed(() => {
-  return formData.value.simulationRequirement.trim() !== '' && files.value.length > 0
+/* --- intro: once per session, never for reduced-motion visitors --- */
+const reduced = typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const showIntro = ref(false)
+const oceanQuality = ref(1)
+
+onMounted(() => {
+  const seen = sessionStorage.getItem('mirofish.intro.seen')
+  // `?nointro` lets deep links / automated checks land straight on the app
+  const skipParam = new URLSearchParams(window.location.search).has('nointro')
+  if (!seen && !reduced && !skipParam) {
+    showIntro.value = true
+    // mark immediately so in-session navigation never replays the opening
+    sessionStorage.setItem('mirofish.intro.seen', '1')
+  }
+
+  // Trim the scene on small screens / low memory so it stays smooth.
+  const small = window.matchMedia('(max-width: 720px)').matches
+  const cores = navigator.hardwareConcurrency || 4
+  oceanQuality.value = small || cores <= 4 ? 0.6 : 1
 })
 
-// 触发文件选择
+const steps = computed(() => [
+  { title: t('home.step01Title'), desc: t('home.step01Desc') },
+  { title: t('home.step02Title'), desc: t('home.step02Desc') },
+  { title: t('home.step03Title'), desc: t('home.step03Desc') },
+  { title: t('home.step04Title'), desc: t('home.step04Desc') },
+  { title: t('home.step05Title'), desc: t('home.step05Desc') }
+])
+
+const canSubmit = computed(
+  () => formData.value.simulationRequirement.trim() !== '' && files.value.length > 0
+)
+
 const triggerFileInput = () => {
-  if (!loading.value) {
-    fileInput.value?.click()
-  }
+  if (!loading.value) fileInput.value?.click()
 }
 
-// 处理文件选择
 const handleFileSelect = (event) => {
-  const selectedFiles = Array.from(event.target.files)
-  addFiles(selectedFiles)
+  addFiles(Array.from(event.target.files))
 }
 
-// 处理拖拽相关
-const handleDragOver = (e) => {
-  if (!loading.value) {
-    isDragOver.value = true
-  }
+const handleDragOver = () => {
+  if (!loading.value) isDragOver.value = true
 }
 
-const handleDragLeave = (e) => {
+const handleDragLeave = () => {
   isDragOver.value = false
 }
 
 const handleDrop = (e) => {
   isDragOver.value = false
   if (loading.value) return
-  
-  const droppedFiles = Array.from(e.dataTransfer.files)
-  addFiles(droppedFiles)
+  addFiles(Array.from(e.dataTransfer.files))
 }
 
-// 添加文件
 const addFiles = (newFiles) => {
-  const validFiles = newFiles.filter(file => {
+  const valid = newFiles.filter((file) => {
     const ext = file.name.split('.').pop().toLowerCase()
     return ['pdf', 'md', 'txt'].includes(ext)
   })
-  files.value.push(...validFiles)
+  files.value.push(...valid)
 }
 
-// 移除文件
 const removeFile = (index) => {
   files.value.splice(index, 1)
 }
 
-// 滚动到底部
-const scrollToBottom = () => {
-  window.scrollTo({
-    top: document.body.scrollHeight,
-    behavior: 'smooth'
-  })
+const focusConsole = () => {
+  consoleRef.value?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
+  window.setTimeout(() => fileInput.value?.click?.(), 420)
 }
 
-// 开始模拟 - 立即跳转，API调用在Process页面进行
+const scrollToWorkflow = () => {
+  flowRef.value?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+}
+
 const startSimulation = () => {
   if (!canSubmit.value || loading.value) return
-  
-  // 存储待上传的数据
   import('../store/pendingUpload.js').then(({ setPendingUpload }) => {
     setPendingUpload(files.value, formData.value.simulationRequirement)
-    
-    // 立即跳转到Process页面（使用特殊标识表示新建项目）
-    router.push({
-      name: 'Process',
-      params: { projectId: 'new' }
-    })
+    router.push({ name: 'Process', params: { projectId: 'new' } })
   })
 }
 </script>
 
 <style scoped>
-/* 全局变量与重置 */
-:root {
-  --black: #000000;
-  --white: #FFFFFF;
-  --orange: #FF4500;
-  --gray-light: #F5F5F5;
-  --gray-text: #666666;
-  --border: #E5E5E5;
-  /* 
-    使用 Space Grotesk 作为主要标题字体，JetBrains Mono 作为代码/标签字体
-    确保已在 index.html 引入这些 Google Fonts 
-  */
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-sans: 'Space Grotesk', 'Noto Sans SC', system-ui, sans-serif;
-  --font-cn: 'Noto Sans SC', system-ui, sans-serif;
-}
-
-.home-container {
-  min-height: 100vh;
-  background: var(--white);
-  font-family: var(--font-sans);
-  color: var(--black);
-}
-
-/* 顶部导航 */
-.navbar {
-  height: 60px;
-  background: var(--black);
-  color: var(--white);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 40px;
-}
-
-.nav-brand {
-  font-family: var(--font-mono);
-  font-weight: 800;
-  letter-spacing: 1px;
-  font-size: 1.2rem;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.github-link {
-  color: var(--white);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: opacity 0.2s;
-}
-
-.github-link:hover {
-  opacity: 0.8;
-}
-
-.arrow {
-  font-family: sans-serif;
-}
-
-/* 主要内容区 */
-.main-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 60px 40px;
-}
-
-/* Hero 区域 */
-.hero-section {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 80px;
+.home {
   position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
 }
 
-.hero-left {
-  flex: 1;
-  padding-right: 60px;
+.home__ocean {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
-.tag-row {
+/* ---------------------------------------------------------------- nav */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  background: rgba(3, 6, 12, 0.62);
+  border-bottom: 1px solid var(--hairline);
+}
+.nav__inner {
+  height: var(--nav-h);
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+  justify-content: space-between;
+  gap: 1rem;
 }
-
-.orange-tag {
-  background: var(--orange);
-  color: var(--white);
-  padding: 4px 10px;
+.nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+}
+.nav__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-s);
+  color: var(--bioluma);
+  background: var(--bioluma-soft);
+  border: 1px solid rgba(52, 228, 201, 0.28);
+}
+.nav__word {
+  font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: 1px;
-  font-size: 0.75rem;
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
+}
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vw, 1.4rem);
+  white-space: nowrap;
+}
+.nav__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bioluma);
+  box-shadow: 0 0 0 0 rgba(52, 228, 201, 0.6);
+  animation: pulse 2.6s var(--ease-out) infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(52, 228, 201, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(52, 228, 201, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 228, 201, 0); }
+}
+.nav__ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.nav__ghost:hover { color: var(--text); }
+
+/* --------------------------------------------------------------- hero */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  padding-block: clamp(3.5rem, 9vh, 7rem) clamp(3rem, 7vh, 6rem);
+  min-height: calc(100dvh - var(--nav-h));
+}
+.hero__copy {
+  position: relative;
+  max-width: 40rem;
+  align-self: center;
+}
+/* contrast scrim so the headline stays legible over the moving scene */
+.hero__copy::before {
+  content: '';
+  position: absolute;
+  inset: -14% -22% -14% -18%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(64% 60% at 34% 52%, rgba(3, 6, 12, 0.9), rgba(3, 6, 12, 0) 74%);
 }
 
-.version-text {
-  color: #999;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
+.hero__eyebrow { margin: 0 0 1.1rem; color: rgba(172, 194, 220, 0.92); }
 
-.main-title {
-  font-size: 4.5rem;
-  line-height: 1.2;
-  font-weight: 500;
-  margin: 0 0 40px 0;
-  letter-spacing: -2px;
-  color: var(--black);
+.hero__title {
+  font-size: clamp(2.6rem, 5.6vw, 4.6rem);
+  margin: 0 0 1.35rem;
 }
-
-.gradient-text {
-  background: linear-gradient(90deg, #000000 0%, #444444 100%);
+.hero__title-a { display: block; color: var(--text); }
+.hero__title-b {
+  display: block;
+  background: linear-gradient(100deg, #34e4c9 0%, #7ff0dd 36%, #ffd9a8 72%, #ff7a59 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: inline-block;
+  background-clip: text;
+  color: transparent;
+  padding-bottom: 0.08em;
 }
 
-.hero-desc {
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: var(--gray-text);
-  max-width: 640px;
-  margin-bottom: 50px;
-  font-weight: 400;
-  text-align: justify;
+.hero__desc {
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.15vw, 1.1rem);
+  line-height: 1.68;
+  color: var(--text-dim);
 }
+.hl-brand { color: var(--text); font-weight: 600; }
+.hl-agent { color: var(--bioluma); font-style: normal; font-weight: 600; }
+.hl-code { font-family: var(--font-mono); font-size: 0.92em; color: var(--amber); }
 
-.hero-desc p {
-  margin-bottom: 1.5rem;
-}
-
-.highlight-bold {
-  color: var(--black);
-  font-weight: 700;
-}
-
-.highlight-orange {
-  color: var(--orange);
-  font-weight: 700;
-  font-family: var(--font-mono);
-}
-
-.highlight-code {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  color: var(--black);
-  font-weight: 600;
-}
-
-.slogan-text {
-  font-size: 1.2rem;
-  font-weight: 520;
-  color: var(--black);
-  letter-spacing: 1px;
-  border-left: 3px solid var(--orange);
-  padding-left: 15px;
-  margin-top: 20px;
-}
-
-.blinking-cursor {
-  color: var(--orange);
-  animation: blink 1s step-end infinite;
-  font-weight: 700;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.decoration-square {
-  width: 16px;
-  height: 16px;
-  background: var(--orange);
-}
-
-.hero-right {
-  flex: 0.8;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.logo-container {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 40px;
-}
-
-.hero-logo {
-  max-width: 500px; /* 调整logo大小 */
-  width: 100%;
-}
-
-.scroll-down-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  background: transparent;
+.hero__slogan {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--orange);
-  font-size: 1.2rem;
-  transition: all 0.2s;
-}
-
-.scroll-down-btn:hover {
-  border-color: var(--orange);
-}
-
-/* Dashboard 双栏布局 */
-.dashboard-section {
-  display: flex;
-  gap: 60px;
-  border-top: 1px solid var(--border);
-  padding-top: 60px;
-  align-items: flex-start;
-}
-
-.dashboard-section .left-panel,
-.dashboard-section .right-panel {
-  display: flex;
-  flex-direction: column;
-}
-
-/* 左侧面板 */
-.left-panel {
-  flex: 0.8;
-}
-
-.panel-header {
+  gap: 0.7rem;
+  margin-top: 1.4rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: #999;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+}
+.hero__slogan-mark {
+  width: 26px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--bioluma), transparent);
+}
+
+.hero__actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
 }
 
-.status-dot {
-  color: var(--orange);
-  font-size: 0.8rem;
+.hero__cta {
+  background: linear-gradient(180deg, rgba(52, 228, 201, 0.22), rgba(52, 228, 201, 0.1));
+  border-color: rgba(52, 228, 201, 0.55);
+  color: #d8fff7;
+  box-shadow: inset 0 1px 0 rgba(200, 255, 245, 0.18);
+}
+.hero__cta:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(52, 228, 201, 0.32), rgba(52, 228, 201, 0.16));
 }
 
-.section-title {
-  font-size: 2rem;
-  font-weight: 520;
-  margin: 0 0 15px 0;
-}
-
-.section-desc {
-  color: var(--gray-text);
-  margin-bottom: 25px;
-  line-height: 1.6;
-}
-
-.metrics-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
-}
-
-.metric-card {
-  border: 1px solid var(--border);
-  padding: 20px 30px;
-  min-width: 150px;
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 1.8rem;
-  font-weight: 520;
-  margin-bottom: 5px;
-}
-
-.metric-label {
-  font-size: 0.85rem;
-  color: #999;
-}
-
-/* 项目模拟步骤介绍 */
-.steps-container {
-  border: 1px solid var(--border);
-  padding: 30px;
+/* ------------------------------------------------------------ console */
+.console {
   position: relative;
+  padding: clamp(1.15rem, 2.4vw, 1.7rem);
+  border-radius: var(--radius-l);
+  background: linear-gradient(180deg, rgba(16, 30, 52, 0.82), rgba(8, 16, 30, 0.88));
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(180, 225, 255, 0.07);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
-
-.steps-header {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: #999;
-  margin-bottom: 25px;
+.console__head {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.diamond-icon {
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.workflow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.workflow-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.step-num {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--black);
-  opacity: 0.3;
-}
-
-.step-info {
-  flex: 1;
-}
-
-.step-title {
-  font-weight: 520;
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.step-desc {
-  font-size: 0.85rem;
-  color: var(--gray-text);
-}
-
-/* 右侧交互控制台 */
-.right-panel {
-  flex: 1.2;
-}
-
-.console-box {
-  border: 1px solid #CCC; /* 外部实线 */
-  padding: 8px; /* 内边距形成双重边框感 */
-}
-
-.console-section {
-  padding: 20px;
-}
-
-.console-section.btn-section {
-  padding-top: 0;
-}
-
-.console-header {
-  display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 15px;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.console__label {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: #666;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
+.console__meta { font-size: 0.8rem; color: var(--text-dim); }
 
-.upload-zone {
-  border: 1px dashed #CCC;
-  height: 200px;
-  overflow-y: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #FAFAFA;
-}
-
-.upload-zone.has-files {
-  align-items: flex-start;
-}
-
-.upload-zone:hover {
-  background: #F0F0F0;
-  border-color: #999;
-}
-
-.upload-placeholder {
-  text-align: center;
-}
-
-.upload-icon {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #DDD;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 15px;
-  color: #999;
-}
-
-.upload-title {
-  font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 5px;
-}
-
-.upload-hint {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: #999;
-}
-
-.file-list {
-  width: 100%;
-  padding: 15px;
+.drop {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.file-item {
-  display: flex;
   align-items: center;
-  background: var(--white);
-  padding: 8px 12px;
-  border: 1px solid #EEE;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-
-.file-name {
-  flex: 1;
-  margin: 0 10px;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 132px;
+  padding: 1.1rem;
+  border-radius: var(--radius-m);
+  border: 1.5px dashed rgba(140, 190, 255, 0.45);
+  background: rgba(6, 14, 26, 0.55);
   cursor: pointer;
-  font-size: 1.2rem;
-  color: #999;
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
+.drop:hover,
+.drop.is-over {
+  border-color: var(--bioluma);
+  background: rgba(52, 228, 201, 0.07);
+}
+.drop.has-files { justify-content: flex-start; align-items: stretch; }
+.drop.is-disabled { opacity: 0.55; pointer-events: none; }
+.drop__input { display: none; }
+.drop__icon { color: var(--bioluma); }
+.drop__title { font-weight: 600; color: var(--text); }
+.drop__hint { font-size: 0.86rem; color: var(--text-dim); }
 
-.console-divider {
+.files { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.files__row {
   display: flex;
   align-items: center;
-  margin: 10px 0;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: rgba(140, 190, 255, 0.07);
+  color: var(--text-dim);
 }
+.files__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.87rem;
+  color: var(--text);
+}
+.files__remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.files__remove:hover { color: var(--danger); background: rgba(255, 107, 107, 0.12); }
 
-.console-divider::before,
-.console-divider::after {
+.console__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 1.15rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.console__divider::before,
+.console__divider::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: #EEE;
+  background: var(--hairline);
 }
 
-.console-divider span {
-  padding: 0 15px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: #BBB;
-  letter-spacing: 1px;
-}
-
-.input-wrapper {
-  position: relative;
-  border: 1px solid #DDD;
-  background: #FAFAFA;
-}
-
-.code-input {
+.console__field { position: relative; display: grid; gap: 0.5rem; }
+.console__label--prompt { color: var(--bioluma); }
+.console__textarea {
   width: 100%;
-  border: none;
-  background: transparent;
-  padding: 20px;
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  line-height: 1.6;
   resize: vertical;
-  outline: none;
-  min-height: 150px;
+  min-height: 104px;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--hairline);
+  background: rgba(4, 10, 20, 0.72);
+  color: var(--text);
+  font-size: 0.93rem;
+  line-height: 1.6;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
-
-.model-badge {
-  position: absolute;
-  bottom: 10px;
-  right: 15px;
+.console__textarea::placeholder { color: rgba(180, 199, 222, 0.82); }
+.console__textarea:focus {
+  outline: none;
+  border-color: var(--bioluma);
+  box-shadow: 0 0 0 3px rgba(52, 228, 201, 0.14);
+}
+.console__badge {
+  justify-self: end;
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: #AAA;
+  color: var(--text-dim);
 }
 
-.start-engine-btn {
+.console__start {
   width: 100%;
-  background: var(--black);
-  color: var(--white);
-  border: none;
-  padding: 20px;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 1.1rem;
+  margin-top: 1.15rem;
+}
+
+.console__stats {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  letter-spacing: 1px;
-  position: relative;
+  gap: 1rem;
+  margin-top: 1.15rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid var(--hairline);
+}
+.stat { display: grid; gap: 0.1rem; }
+.stat__value { font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; }
+.stat__label { font-size: 0.8rem; color: var(--text-dim); }
+.stat__rule { width: 1px; height: 26px; background: var(--hairline); }
+
+/* --------------------------------------------------------------- flow */
+.flow {
+  padding-block: clamp(3rem, 7vh, 5rem);
+  border-top: 1px solid var(--hairline);
+}
+.flow__title {
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  margin-bottom: 1.8rem;
+}
+.flow__rail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-m);
   overflow: hidden;
+  background: var(--hairline);
 }
-
-/* 可点击状态（非禁用） */
-.start-engine-btn:not(:disabled) {
-  background: var(--black);
-  border: 1px solid var(--black);
-  animation: pulse-border 2s infinite;
+.flow__step {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.35rem 1.2rem 1.5rem;
+  background: rgba(8, 16, 30, 0.72);
+  transition: background var(--dur-fast) var(--ease-out);
 }
-
-.start-engine-btn:hover:not(:disabled) {
-  background: var(--orange);
-  border-color: var(--orange);
-  transform: translateY(-2px);
+.flow__step:hover { background: rgba(18, 34, 56, 0.8); }
+.flow__num {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--bioluma);
+  letter-spacing: 0.1em;
 }
+.flow__body { display: grid; gap: 0.35rem; }
+.flow__name { font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; }
+.flow__desc { font-size: 0.86rem; line-height: 1.55; color: var(--text-faint); }
 
-.start-engine-btn:active:not(:disabled) {
-  transform: translateY(0);
+/* ------------------------------------------------------------- ledger */
+.ledger { padding-block: clamp(2rem, 5vh, 3.5rem); }
+
+/* --------------------------------------------------------------- foot */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 2rem 2.75rem;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
 }
+.foot__dim { color: rgba(165, 185, 211, 0.75); }
 
-.start-engine-btn:disabled {
-  background: #E5E5E5;
-  color: #999;
-  cursor: not-allowed;
-  transform: none;
-  border: 1px solid #E5E5E5;
-}
-
-/* 引导动画：微妙的边框脉冲 */
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2); }
-  70% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
-}
-
-/* 响应式适配 */
+/* ---------------------------------------------------------- responsive */
 @media (max-width: 1024px) {
-  .dashboard-section {
-    flex-direction: column;
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 2.25rem;
+    min-height: 0;
+    padding-block: clamp(2.5rem, 6vh, 4rem);
   }
-  
-  .hero-section {
-    flex-direction: column;
-  }
-  
-  .hero-left {
-    padding-right: 0;
-    margin-bottom: 40px;
-  }
-  
-  .hero-logo {
-    max-width: 200px;
-    margin-bottom: 20px;
-  }
-}
-</style>
-
-<style>
-/* English locale adjustments (unscoped to target html[lang]) */
-html[lang="en"] .main-title {
-  font-size: 3.5rem;
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: -1px;
+  .hero__copy { max-width: none; }
+  .flow__rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-html[lang="en"] .hero-desc {
-  text-align: left;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: 0;
-}
-
-html[lang="en"] .slogan-text {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: 0;
-}
-
-html[lang="en"] .tag-row {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-html[lang="en"] .navbar .nav-links {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Left pane: system status + workflow */
-html[lang="en"] .status-section {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-html[lang="en"] .status-section .status-ready {
-  font-size: 1.6rem;
-}
-
-html[lang="en"] .status-section .metric-value {
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1.4rem;
-}
-
-html[lang="en"] .workflow-list .step-title {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-html[lang="en"] .workflow-list .step-desc {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 0.72rem !important;
-  line-height: 1.4 !important;
-}
-
-html[lang="en"] .workflow-list {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+@media (max-width: 640px) {
+  .nav__status { display: none; }
+  .nav__inner { gap: 0.5rem; }
+  .hero__title { font-size: clamp(2.1rem, 9vw, 2.9rem); }
+  .hero__actions { flex-direction: column; align-items: stretch; }
+  .hero__actions .mf-btn { width: 100%; }
+  .flow__rail { grid-template-columns: 1fr; }
+  .console__stats { flex-wrap: wrap; }
+  .stat__rule { display: none; }
 }
 </style>
