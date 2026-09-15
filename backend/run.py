@@ -38,7 +38,8 @@ def main():
     
     # 获取运行配置
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
-    port = int(os.environ.get('FLASK_PORT', 5001))
+    # PaaS hosts inject $PORT; FLASK_PORT still wins when set explicitly.
+    port = int(os.environ.get('FLASK_PORT') or os.environ.get('PORT') or '5001')
     debug = Config.DEBUG
     
     # 启动服务
