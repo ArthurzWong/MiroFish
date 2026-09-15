@@ -69,7 +69,10 @@
     "promptPlaceholder": "// Describe your simulation or prediction requirement in natural language",
     "engineBadge": "Engine: MiroFish-V1.0",
     "startEngine": "Start Engine",
-    "initializing": "Initializing..."
+    "initializing": "Initializing...",
+    "enter": "Enter the deep",
+    "skipIntro": "Skip intro",
+    "consoleCta": "Open console"
   },
   "main": {
     "layoutGraph": "Graph",
