@@ -3,8 +3,11 @@ import i18n from '../i18n'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
-  timeout: 300000, // 5分钟超时（本体生成可能需要较长时间）
+  // 默认同源（生产部署走反向代理 / Vercel rewrite 到后端）；
+  // 本地开发时 Vite dev server 已把 /api 代理到 localhost:5001。
+  // 仍可用 VITE_API_BASE_URL 覆盖为独立后端地址。
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  timeout: 60000, // 常规请求（上传/任务查询）60秒足够；本体/图谱生成已改为异步任务轮询
   headers: {
     'Content-Type': 'application/json'
   }

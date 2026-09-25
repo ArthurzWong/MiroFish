@@ -265,7 +265,7 @@ def _reset_project_impl(project_id: str):
 @graph_bp.route('/ontology/generate', methods=['POST'])
 def generate_ontology():
     """
-    接口1：上传文件，分析生成本体定义
+    接口1：上传文件，异步分析生成本体定义
     
     请求方式：multipart/form-data
     
@@ -280,13 +280,9 @@ def generate_ontology():
             "success": true,
             "data": {
                 "project_id": "proj_xxxx",
-                "ontology": {
-                    "entity_types": [...],
-                    "edge_types": [...],
-                    "analysis_summary": "..."
-                },
-                "files": [...],
-                "total_text_length": 12345
+                "task_id": "task_xxxx",
+                "status": "ontology_pending",
+                "message": "..."
             }
         }
     """
@@ -321,7 +317,7 @@ def generate_ontology():
         project.simulation_requirement = simulation_requirement
         logger.info(f"创建项目: {project.project_id}")
         
-        # 保存文件并提取文本
+        # 保存文件并提取文本（快速的本地IO，仍在请求内完成）
         document_texts = []
         all_text = ""
         
@@ -356,45 +352,119 @@ def generate_ontology():
         ProjectManager.save_extracted_text(project.project_id, all_text)
         logger.info(f"文本提取完成，共 {len(all_text)} 字符")
         
-        # 生成本体
-        logger.info("调用 LLM 生成本体定义...")
-        generator = OntologyGenerator()
-        ontology = generator.generate(
-            document_texts=document_texts,
-            simulation_requirement=simulation_requirement,
-            additional_context=additional_context if additional_context else None
-        )
+        # 创建异步任务：LLM 本体生成是长耗时步骤，不再阻塞 HTTP 请求
+        task_manager = TaskManager()
+        task_id = task_manager.create_task(t('progress.ontologyQueued'))
+        logger.info(f"创建本体生成任务: task_id={task_id}, project_id={project.project_id}")
         
-        # 保存本体到项目
-        entity_count = len(ontology.get("entity_types", []))
-        edge_count = len(ontology.get("edge_types", []))
-        logger.info(f"本体生成完成: {entity_count} 个实体类型, {edge_count} 个关系类型")
-        
-        project.ontology = {
-            "entity_types": ontology.get("entity_types", []),
-            "edge_types": ontology.get("edge_types", [])
-        }
-        project.analysis_summary = ontology.get("analysis_summary", "")
-        project.status = ProjectStatus.ONTOLOGY_GENERATED
+        project.status = ProjectStatus.ONTOLOGY_PENDING
+        project.ontology_task_id = task_id
         ProjectManager.save_project(project)
-        logger.info(f"=== 本体生成完成 === 项目ID: {project.project_id}")
+        
+        # Capture locale before spawning background thread
+        current_locale = get_locale()
+        
+        def ontology_task():
+            set_locale(current_locale)
+            try:
+                task_manager.update_task(
+                    task_id,
+                    status=TaskStatus.PROCESSING,
+                    message=t('api.ontologyAccepted'),
+                    progress=10
+                )
+                
+                generator = OntologyGenerator()
+                ontology = generator.generate(
+                    document_texts=document_texts,
+                    simulation_requirement=simulation_requirement,
+                    additional_context=additional_context if additional_context else None
+                )
+                
+                entity_count = len(ontology.get("entity_types", []))
+                edge_count = len(ontology.get("edge_types", []))
+                logger.info(f"本体生成完成: {entity_count} 个实体类型, {edge_count} 个关系类型")
+                
+                project.ontology = {
+                    "entity_types": ontology.get("entity_types", []),
+                    "edge_types": ontology.get("edge_types", [])
+                }
+                project.analysis_summary = ontology.get("analysis_summary", "")
+                project.status = ProjectStatus.ONTOLOGY_GENERATED
+                ProjectManager.save_project(project)
+                
+                task_manager.update_task(
+                    task_id,
+                    status=TaskStatus.COMPLETED,
+                    message=t('progress.ontologyComplete'),
+                    progress=100,
+                    result={
+                        "project_id": project.project_id,
+                        "entity_count": entity_count,
+                        "edge_count": edge_count,
+                    }
+                )
+            except Exception as error:
+                provider_status = getattr(error, "status_code", None)
+                request_id = getattr(error, "request_id", None)
+                
+                if isinstance(error, LLMResponseError):
+                    public_error = str(error)
+                    logger.exception("LLM returned an unusable ontology response")
+                elif isinstance(provider_status, int):
+                    public_error = f"LLM provider request failed (HTTP {provider_status})"
+                    safe_request_id = re.sub(
+                        r"[^a-zA-Z0-9._:-]", "", str(request_id or "")
+                    )[:128]
+                    if safe_request_id:
+                        public_error += f" (request_id: {safe_request_id})"
+                    # Provider exception bodies may echo request content. Keep
+                    # the server log useful without serializing the body.
+                    logger.error(
+                        "Ontology provider request failed: type=%s status=%s request_id=%s",
+                        type(error).__name__,
+                        provider_status,
+                        request_id or "unknown",
+                    )
+                else:
+                    public_error = "Ontology generation failed; check the server logs"
+                    logger.exception("Unexpected ontology generation failure")
+                
+                project.status = ProjectStatus.FAILED
+                project.error = public_error
+                try:
+                    ProjectManager.save_project(project)
+                except Exception:
+                    logger.exception(
+                        "Failed to persist ontology failure for project %s",
+                        project.project_id,
+                    )
+                task_manager.update_task(
+                    task_id,
+                    status=TaskStatus.FAILED,
+                    message=t('progress.buildFailed', error=public_error),
+                    error=public_error
+                )
+        
+        thread = threading.Thread(target=ontology_task, daemon=True)
+        thread.start()
         
         return jsonify({
             "success": True,
             "data": {
                 "project_id": project.project_id,
-                "project_name": project.name,
-                "ontology": project.ontology,
-                "analysis_summary": project.analysis_summary,
+                "task_id": task_id,
+                "status": project.status.value,
                 "files": project.files,
-                "total_text_length": project.total_text_length
+                "total_text_length": project.total_text_length,
+                "message": t('api.ontologyAccepted')
             }
         })
         
     except Exception as error:
         provider_status = getattr(error, "status_code", None)
         request_id = getattr(error, "request_id", None)
-
+        
         if isinstance(error, LLMResponseError):
             public_error = str(error)
             response_status = 502
@@ -420,7 +490,7 @@ def generate_ontology():
             public_error = "Ontology generation failed; check the server logs"
             response_status = 500
             logger.exception("Unexpected ontology generation failure")
-
+        
         response_data = None
         if project is not None:
             project.status = ProjectStatus.FAILED
@@ -433,7 +503,7 @@ def generate_ontology():
                     project.project_id,
                 )
             response_data = {"project_id": project.project_id}
-
+        
         payload = {
             "success": False,
             "error": public_error,
@@ -525,6 +595,12 @@ def _build_graph_impl():
                 "success": False,
                 "error": t('api.ontologyNotGenerated')
             }), 400
+        
+        if project.status == ProjectStatus.ONTOLOGY_PENDING:
+            return jsonify({
+                "success": False,
+                "error": t('api.ontologyInProgress')
+            }), 409
         
         resume_existing_batch = False
         if project.status == ProjectStatus.GRAPH_BUILDING:
