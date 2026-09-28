@@ -75,7 +75,13 @@
     "layoutGraph": "图谱",
     "layoutSplit": "双栏",
     "layoutWorkbench": "工作台",
-    "stepNames": ["图谱构建", "环境搭建", "开始模拟", "报告生成", "深度互动"]
+    "stepNames": [
+      "图谱构建",
+      "环境搭建",
+      "开始模拟",
+      "报告生成",
+      "深度互动"
+    ]
   },
   "step1": {
     "ontologyGeneration": "本体生成",
@@ -324,6 +330,7 @@
     "projectDeleted": "项目已删除: {id}",
     "projectReset": "项目已重置: {id}",
     "requireSimulationRequirement": "请提供模拟需求描述 (simulation_requirement)",
+    "ontologyQueued": "文档分析已启动，正在准备本体生成...",
     "requireFileUpload": "请至少上传一个文档文件",
     "noDocProcessed": "没有成功处理任何文档，请检查文件格式",
     "requireProjectId": "请提供 project_id",
@@ -331,6 +338,7 @@
     "zepApiKeyMissing": "ZEP_API_KEY未配置",
     "ontologyNotGenerated": "项目尚未生成本体，请先调用 /ontology/generate",
     "graphBuilding": "图谱正在构建中，请勿重复提交。如需强制重建，请添加 force: true",
+    "ontologyInProgress": "本体仍在生成中，请等待完成后再构建图谱。",
     "textNotFound": "未找到提取的文本内容",
     "ontologyNotFound": "未找到本体定义",
     "graphBuildStarted": "图谱构建任务已启动，请通过 /task/{taskId} 查询进度",
@@ -388,10 +396,12 @@
     "envRunning": "环境正在运行，可以接收Interview命令",
     "envNotRunningShort": "环境未运行或已关闭",
     "requireGraphIdAndQuery": "请提供 graph_id 和 query",
-    "initReportAgent": "初始化Report Agent..."
+    "initReportAgent": "初始化Report Agent...",
+    "ontologyAccepted": "文档已接收，正在分析内容并生成本体，大约需要 1-3 分钟..."
   },
   "progress": {
     "initGraphService": "初始化图谱构建服务...",
+    "ontologyQueued": "任务已排队：正在从文档生成本体...",
     "textChunking": "文本分块中...",
     "creatingZepGraph": "创建Zep图谱...",
     "settingOntology": "设置本体定义...",
@@ -450,7 +460,9 @@
     "readingGraphEntities": "读取图谱实体",
     "generatingProfiles": "生成Agent人设",
     "generatingSimConfig": "生成模拟配置",
-    "preparingScripts": "准备模拟脚本"
+    "preparingScripts": "准备模拟脚本",
+    "ontologyComplete": "本体生成完成，开始构建图谱...",
+    "ontologyDiscarded": "项目在生成期间被重置，本体结果已丢弃。"
   },
   "log": {
     "preparingGoBack": "准备返回 Step 2，正在关闭模拟...",

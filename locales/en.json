@@ -75,7 +75,13 @@
     "layoutGraph": "Graph",
     "layoutSplit": "Split",
     "layoutWorkbench": "Workbench",
-    "stepNames": ["Graph Build", "Env Setup", "Run Simulation", "Report Generation", "Deep Interaction"]
+    "stepNames": [
+      "Graph Build",
+      "Env Setup",
+      "Run Simulation",
+      "Report Generation",
+      "Deep Interaction"
+    ]
   },
   "step1": {
     "ontologyGeneration": "Ontology Generation",
@@ -324,6 +330,7 @@
     "projectDeleted": "Project deleted: {id}",
     "projectReset": "Project reset: {id}",
     "requireSimulationRequirement": "Please provide a simulation requirement (simulation_requirement)",
+    "ontologyQueued": "Document analysis started. Preparing ontology generation...",
     "requireFileUpload": "Please upload at least one document file",
     "noDocProcessed": "No documents were processed successfully. Please check file formats.",
     "requireProjectId": "Please provide project_id",
@@ -331,6 +338,7 @@
     "zepApiKeyMissing": "ZEP_API_KEY not configured",
     "ontologyNotGenerated": "Ontology not yet generated. Please call /ontology/generate first.",
     "graphBuilding": "Graph build in progress. Do not resubmit. To force rebuild, add force: true.",
+    "ontologyInProgress": "Ontology generation is still in progress. Please wait for it to finish before building the graph.",
     "textNotFound": "Extracted text content not found",
     "ontologyNotFound": "Ontology definition not found",
     "graphBuildStarted": "Graph build task started. Query progress via /task/{taskId}.",
@@ -388,10 +396,12 @@
     "envRunning": "Environment is running and ready for Interview commands",
     "envNotRunningShort": "Environment not running or closed",
     "requireGraphIdAndQuery": "Please provide graph_id and query",
-    "initReportAgent": "Initializing Report Agent..."
+    "initReportAgent": "Initializing Report Agent...",
+    "ontologyAccepted": "Documents received. Analyzing content and generating ontology, this can take 1-3 minutes..."
   },
   "progress": {
     "initGraphService": "Initializing graph build service...",
+    "ontologyQueued": "Queued: generating ontology from documents...",
     "textChunking": "Chunking text...",
     "creatingZepGraph": "Creating Zep graph...",
     "settingOntology": "Setting ontology definition...",
@@ -450,7 +460,9 @@
     "readingGraphEntities": "Reading Graph Entities",
     "generatingProfiles": "Generating Agent Profiles",
     "generatingSimConfig": "Generating Simulation Config",
-    "preparingScripts": "Preparing Scripts"
+    "preparingScripts": "Preparing Scripts",
+    "ontologyComplete": "Ontology generated, starting graph build...",
+    "ontologyDiscarded": "Ontology result discarded because the project was reset during generation."
   },
   "log": {
     "preparingGoBack": "Preparing to return to Step 2, closing simulation...",

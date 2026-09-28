@@ -1,8 +1,11 @@
 import io
+import time
 
 from app import create_app
 from app.api import graph as graph_api
+from app.config import Config
 from app.models.project import ProjectManager, ProjectStatus
+from app.models.task import TaskManager, TaskStatus
 from app.utils.llm_client import LLMResponseError
 
 
@@ -17,10 +20,18 @@ def _post_ontology(client):
     )
 
 
-def test_ontology_api_returns_safe_truncation_error_and_failed_project(
-    tmp_path,
-    monkeypatch,
-):
+def _wait_for_task_terminal(task_id, timeout=10.0):
+    deadline = time.time() + timeout
+    task = TaskManager().get_task(task_id)
+    while time.time() < deadline:
+        task = TaskManager().get_task(task_id)
+        if task and task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED}:
+            return task
+        time.sleep(0.05)
+    return task
+
+
+def test_ontology_failure_is_persisted_with_safe_error(tmp_path, monkeypatch):
     class FailingGenerator:
         def generate(self, **kwargs):
             raise LLMResponseError(
@@ -35,18 +46,22 @@ def test_ontology_api_returns_safe_truncation_error_and_failed_project(
     app.config.update(TESTING=True)
     response = _post_ontology(app.test_client())
 
-    assert response.status_code == 502
-    assert response.json["success"] is False
-    assert "token limit" in response.json["error"]
-    assert "traceback" not in response.json
+    # Upload/queueing succeeds; the LLM failure surfaces on the task/project
+    assert response.status_code == 200
+    assert response.json["success"] is True
+    data = response.json["data"]
 
-    project_id = response.json["data"]["project_id"]
-    project = ProjectManager.get_project(project_id)
+    task = _wait_for_task_terminal(data["task_id"])
+    assert task is not None and task.status == TaskStatus.FAILED
+    assert "token limit" in task.error
+    assert "traceback" not in (task.error or "")
+
+    project = ProjectManager.get_project(data["project_id"])
     assert project.status == ProjectStatus.FAILED
-    assert project.error == response.json["error"]
+    assert project.error == task.error
 
 
-def test_ontology_api_does_not_expose_provider_error_body(tmp_path, monkeypatch):
+def test_ontology_provider_error_does_not_expose_provider_body(tmp_path, monkeypatch):
     class ProviderError(RuntimeError):
         status_code = 401
         request_id = "request-safe-id"
@@ -63,8 +78,15 @@ def test_ontology_api_does_not_expose_provider_error_body(tmp_path, monkeypatch)
     app.config.update(TESTING=True)
     response = _post_ontology(app.test_client())
 
-    assert response.status_code == 502
-    assert "HTTP 401" in response.json["error"]
-    assert "request-safe-id" in response.json["error"]
-    assert "SECRET-PROVIDER-BODY" not in response.get_data(as_text=True)
-    assert "traceback" not in response.json
+    assert response.status_code == 200
+    data = response.json["data"]
+
+    task = _wait_for_task_terminal(data["task_id"])
+    assert task is not None and task.status == TaskStatus.FAILED
+    assert "HTTP 401" in task.error
+    assert "request-safe-id" in task.error
+    assert "SECRET-PROVIDER-BODY" not in task.error
+
+    project = ProjectManager.get_project(data["project_id"])
+    assert project.status == ProjectStatus.FAILED
+    assert "SECRET-PROVIDER-BODY" not in (project.error or "")

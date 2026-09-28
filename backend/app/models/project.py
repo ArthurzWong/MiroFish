@@ -17,6 +17,7 @@ from ..config import Config
 class ProjectStatus(str, Enum):
     """项目状态"""
     CREATED = "created"              # 刚创建，文件已上传
+    ONTOLOGY_PENDING = "ontology_pending"  # 本体生成任务已排队/进行中
     ONTOLOGY_GENERATED = "ontology_generated"  # 本体已生成
     GRAPH_BUILDING = "graph_building"    # 图谱构建中
     GRAPH_COMPLETED = "graph_completed"  # 图谱构建完成
@@ -39,6 +40,7 @@ class Project:
     # 本体信息（接口1生成后填充）
     ontology: Optional[Dict[str, Any]] = None
     analysis_summary: Optional[str] = None
+    ontology_task_id: Optional[str] = None
     
     # 图谱信息（接口2完成后填充）
     graph_id: Optional[str] = None
@@ -66,6 +68,7 @@ class Project:
             "total_text_length": self.total_text_length,
             "ontology": self.ontology,
             "analysis_summary": self.analysis_summary,
+            "ontology_task_id": self.ontology_task_id,
             "graph_id": self.graph_id,
             "graph_build_task_id": self.graph_build_task_id,
             "zep_batch_id": self.zep_batch_id,
@@ -93,6 +96,7 @@ class Project:
             total_text_length=data.get('total_text_length', 0),
             ontology=data.get('ontology'),
             analysis_summary=data.get('analysis_summary'),
+            ontology_task_id=data.get('ontology_task_id'),
             graph_id=data.get('graph_id'),
             graph_build_task_id=data.get('graph_build_task_id'),
             zep_batch_id=data.get('zep_batch_id'),
