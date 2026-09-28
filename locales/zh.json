@@ -402,7 +402,6 @@
   "progress": {
     "initGraphService": "初始化图谱构建服务...",
     "ontologyQueued": "任务已排队：正在从文档生成本体...",
-    "waitingForOntology": "等待本体生成完成...",
     "textChunking": "文本分块中...",
     "creatingZepGraph": "创建Zep图谱...",
     "settingOntology": "设置本体定义...",
@@ -462,7 +461,8 @@
     "generatingProfiles": "生成Agent人设",
     "generatingSimConfig": "生成模拟配置",
     "preparingScripts": "准备模拟脚本",
-    "ontologyComplete": "本体生成完成，开始构建图谱..."
+    "ontologyComplete": "本体生成完成，开始构建图谱...",
+    "ontologyDiscarded": "项目在生成期间被重置，本体结果已丢弃。"
   },
   "log": {
     "preparingGoBack": "准备返回 Step 2，正在关闭模拟...",

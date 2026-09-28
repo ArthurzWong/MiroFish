@@ -52,7 +52,7 @@ Same variables as documented in the root `README.md` / `.env.example`:
 # terminal 1 - backend
 cd backend
 uv sync                      # or: pip install -r requirements.txt
-python run.py                # serves http://localhost:5001
+uv run python run.py         # serves http://localhost:5001 (activates .venv)
 
 # terminal 2 - frontend
 cd frontend
@@ -84,9 +84,12 @@ provider; the graph build stage was already async and unchanged.
 - **CORS errors in the browser console:** the backend must be reachable over
   HTTPS from the browser. `zep-cloud`/Flask only on `http://localhost` will
   not work from a public site.
-- **Task stuck at "processing":** check the backend logs — the LLM provider
-  request is the only long step; provider outages surface as failed tasks
-  with a safe error message.
-- **Very large scanned PDFs:** PyMuPDF extracts embedded text only; scanned
-  image PDFs yield little/no text and fail with "No documents were processed
-  successfully".
+- **Task stuck at "processing" or poll returns 404:** the ontology task state
+  lives in backend process memory. If the backend restarts or you run multiple
+  workers, a queued task can be lost. Re-submitting the same documents +
+  simulation requirement on `/process/new` detects the orphaned pending
+  project, marks it failed, and lets you retry cleanly. For production, run a
+  single backend worker or add persistent task storage.
+- **Scanned/image-only PDFs:** PyMuPDF extracts embedded text only; scanned
+  image PDFs yield no text and are rejected at upload with "No documents were
+  processed successfully". Run OCR before uploading.

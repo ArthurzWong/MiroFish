@@ -10,6 +10,9 @@ export function generateOntology(formData) {
     url: '/api/graph/ontology/generate',
     method: 'post',
     data: formData,
+    // Upload + server-side PDF extraction still happen synchronously before
+    // the task is queued; give large files room beyond the global 60s.
+    timeout: 120000,
     headers: {
       'Content-Type': 'multipart/form-data'
     }

@@ -19,6 +19,19 @@ def _post_ontology(client):
     )
 
 
+def _wait_for_task_terminal(task_id, timeout=10.0):
+    import time as _time
+
+    deadline = _time.time() + timeout
+    task = None
+    while _time.time() < deadline:
+        task = TaskManager().get_task(task_id)
+        if task and task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED}:
+            return task
+        _time.sleep(0.05)
+    return task
+
+
 def test_ontology_generate_returns_task_immediately(tmp_path, monkeypatch):
     """The LLM call must not block the HTTP response."""
     release = threading.Event()
@@ -85,14 +98,14 @@ def test_ontology_task_completes_and_persists_ontology(tmp_path, monkeypatch):
     assert response.status_code == 200
     data = response.json["data"]
 
-    # Background thread completes quickly for this generator
-    task = TaskManager().get_task(data["task_id"])
-    assert task is not None
-    assert task.status in {TaskStatus.PROCESSING, TaskStatus.COMPLETED} or task.status == TaskStatus.PENDING
+    # Background thread completes quickly for this generator: wait for it
+    task = _wait_for_task_terminal(data["task_id"])
+    assert task is not None and task.status == TaskStatus.COMPLETED
 
-    # Building the graph while the ontology task is still running is rejected
     project = ProjectManager.get_project(data["project_id"])
-    assert project.status in {ProjectStatus.ONTOLOGY_PENDING, ProjectStatus.ONTOLOGY_GENERATED}
+    assert project.status == ProjectStatus.ONTOLOGY_GENERATED
+    assert project.ontology is not None
+    assert "entity_types" in project.ontology
 
 
 def test_build_rejected_while_ontology_pending(tmp_path, monkeypatch):
@@ -115,11 +128,11 @@ def test_build_rejected_while_ontology_pending(tmp_path, monkeypatch):
     data = response.json["data"]
     project_id = data["project_id"]
 
-    # Try to build immediately, while the ontology task is still queued
+    # Try to build immediately, while the ontology task is still queued.
+    # 409 = still ONTOLOGY_PENDING (expected steady state); 200 = the stub
+    # finished before the request arrived and the build task started.
     build_response = client.post("/api/graph/build", json={"project_id": project_id})
-    # Either 409 (still pending) or 400 (already finished fast) are acceptable;
-    # a 409 with the ontologyInProgress message is the expected steady state.
-    assert build_response.status_code in {400, 409}
+    assert build_response.status_code in {200, 409}
 
 
 def test_ontology_generate_validation_still_synchronous(tmp_path, monkeypatch):
@@ -143,3 +156,51 @@ def test_ontology_generate_validation_still_synchronous(tmp_path, monkeypatch):
         content_type="multipart/form-data",
     )
     assert no_files.status_code == 400
+
+
+def test_build_pending_409_takes_precedence_over_missing_zep_config(tmp_path, monkeypatch):
+    """A pending project gets 409 even when ZEP_API_KEY is not configured."""
+    from app.config import Config
+
+    class SlowGenerator:
+        def generate(self, **kwargs):
+            import time
+
+            time.sleep(0.6)
+            return {"entity_types": [], "edge_types": [], "analysis_summary": ""}
+
+    monkeypatch.setattr(ProjectManager, "PROJECTS_DIR", str(tmp_path))
+    monkeypatch.setattr(graph_api, "OntologyGenerator", SlowGenerator)
+    monkeypatch.setattr(Config, "ZEP_API_KEY", None)
+
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    response = _post_ontology(client)
+    assert response.status_code == 200
+    project_id = response.json["data"]["project_id"]
+
+    build_response = client.post("/api/graph/build", json={"project_id": project_id})
+    assert build_response.status_code == 409
+    assert "生成" in build_response.json["error"] or "ontology" in build_response.json["error"].lower()
+
+
+def test_rejects_upload_with_no_extractable_text(tmp_path, monkeypatch):
+    """A scanned/image-only PDF (no embedded text) fails fast at upload."""
+    monkeypatch.setattr(ProjectManager, "PROJECTS_DIR", str(tmp_path))
+
+    class EmptyTextParser:
+        @staticmethod
+        def extract_text(file_path):
+            return ""
+
+    monkeypatch.setattr(graph_api, "FileParser", EmptyTextParser)
+
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    response = _post_ontology(client)
+    assert response.status_code == 400
+    assert response.json["success"] is False

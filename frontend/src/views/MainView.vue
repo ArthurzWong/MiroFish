@@ -113,6 +113,9 @@ const systemLogs = ref([])
 // Polling timers
 let pollTimer = null
 let graphPollTimer = null
+// Token guarding against stale poll responses (e.g. an in-flight ontology
+// poll resolving after startBuildGraph() moved the phase forward).
+let pollToken = 0
 
 // --- Computed Layout Styles ---
 const leftPanelStyle = computed(() => {
@@ -334,29 +337,35 @@ const fetchGraphData = async () => {
 }
 
 const startPollingTask = (taskId) => {
-  pollTaskStatus(taskId)
-  pollTimer = setInterval(() => pollTaskStatus(taskId), 2000)
+  stopPolling()
+  pollToken++
+  const token = pollToken
+  pollTaskStatus(taskId, token)
+  pollTimer = setInterval(() => pollTaskStatus(taskId, token), 2000)
 }
 
-const pollTaskStatus = async (taskId) => {
+const activeProgressRef = () => (currentPhase.value === 0 ? ontologyProgress : buildProgress)
+
+const pollTaskStatus = async (taskId, token = pollToken) => {
+  // A newer polling session started; drop stale in-flight responses.
+  if (token !== pollToken) return
   try {
     const res = await getTaskStatus(taskId)
+    if (token !== pollToken) return
     if (res.success) {
       const task = res.data
+      const progressRef = activeProgressRef()
       
-      // Log progress message if it changed
-      if (task.message && task.message !== buildProgress.value?.message) {
+      // Log progress message if it changed (compared against the panel this
+      // stage actually writes to, to avoid duplicate log flooding)
+      if (task.message && task.message !== progressRef.value?.message) {
         addLog(task.message)
       }
       
-      if (currentPhase.value === 0) {
-        // Ontology stage progress shows in the ontology panel
-        ontologyProgress.value = { progress: task.progress || 0, message: task.message }
-      } else {
-        buildProgress.value = { progress: task.progress || 0, message: task.message }
-      }
+      progressRef.value = { progress: task.progress || 0, message: task.message }
       
       if (task.status === 'completed') {
+        if (token !== pollToken) return
         stopPolling()
         
         if (currentPhase.value === 0) {
@@ -381,9 +390,11 @@ const pollTaskStatus = async (taskId) => {
           }
         }
       } else if (task.status === 'failed') {
+        if (token !== pollToken) return
         stopPolling()
         error.value = task.error
         if (currentPhase.value === 0) {
+          ontologyProgress.value = null
           addLog(`Ontology generation task failed: ${task.error}`)
         } else {
           addLog(`Graph build task failed: ${task.error}`)
@@ -392,6 +403,16 @@ const pollTaskStatus = async (taskId) => {
     }
   } catch (e) {
     console.error(e)
+    // Task not found (404) happens after a backend restart: TaskManager is
+    // process-local. Surface it instead of polling forever.
+    if (e?.response?.status === 404 && token === pollToken) {
+      stopPolling()
+      error.value = 'Task state was lost (backend restarted). Please resubmit the documents.'
+      if (currentPhase.value === 0) {
+        ontologyProgress.value = null
+      }
+      addLog(`Task ${taskId} no longer exists on the server.`)
+    }
   }
 }
 

@@ -402,7 +402,6 @@
   "progress": {
     "initGraphService": "Initializing graph build service...",
     "ontologyQueued": "Queued: generating ontology from documents...",
-    "waitingForOntology": "Waiting for ontology generation to finish...",
     "textChunking": "Chunking text...",
     "creatingZepGraph": "Creating Zep graph...",
     "settingOntology": "Setting ontology definition...",
@@ -462,7 +461,8 @@
     "generatingProfiles": "Generating Agent Profiles",
     "generatingSimConfig": "Generating Simulation Config",
     "preparingScripts": "Preparing Scripts",
-    "ontologyComplete": "Ontology generated, starting graph build..."
+    "ontologyComplete": "Ontology generated, starting graph build...",
+    "ontologyDiscarded": "Ontology result discarded because the project was reset during generation."
   },
   "log": {
     "preparingGoBack": "Preparing to return to Step 2, closing simulation...",
