@@ -1,0 +1,32 @@
+# Fly.io config — deploys the MiroFish Flask backend as a single VM.
+# The Vue frontend is deployed separately (Vercel); this app only serves the API.
+#
+#   fly launch --no-deploy --copy-config
+#   fly secrets set LLM_API_KEY=... ZEP_API_KEY=...
+#   fly deploy
+app = "mirofish-backend"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  # Override the image CMD: run the API only, not the bundled dev frontend.
+  app = "bash -lc 'cd backend && uv run python run.py'"
+
+[env]
+  FLASK_HOST = "0.0.0.0"
+  FLASK_PORT = "8080"
+  FLASK_DEBUG = "false"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# camel-ai / camel-oasis are memory-hungry; 1 GB is not enough.
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

@@ -1,0 +1,33 @@
+# Render Blueprint — deploys the MiroFish Flask backend as a Docker web service.
+# The Vue frontend is deployed separately (Vercel); this service only serves the API.
+#
+# After connecting the repo in Render, set the two secret env vars when prompted:
+#   LLM_API_KEY  and  ZEP_API_KEY
+services:
+  - type: web
+    name: mirofish-backend
+    runtime: docker
+    region: singapore
+    plan: starter
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Override the image CMD: run the API only, not the bundled dev frontend.
+    dockerCommand: bash -lc "cd backend && uv run python run.py"
+    envVars:
+      - key: FLASK_HOST
+        value: 0.0.0.0
+      - key: FLASK_DEBUG
+        value: "false"
+      # --- required (set these in the Render dashboard) ---
+      - key: LLM_API_KEY
+        sync: false
+      - key: ZEP_API_KEY
+        sync: false
+      # --- defaults matching .env.example ---
+      - key: LLM_BASE_URL
+        value: https://dashscope.aliyuncs.com/compatible-mode/v1
+      - key: LLM_MODEL_NAME
+        value: qwen-plus
+      - key: OASIS_DEFAULT_MAX_ROUNDS
+        value: "10"
